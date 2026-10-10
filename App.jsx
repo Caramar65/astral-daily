@@ -232,22 +232,46 @@ function EnergyBar({ label, value }) {
 export default function AstralDailyApp() {
   const [selectedSign, setSelectedSign] = useState(null);
   const [currentTime, setCurrentTime] = useState('');
+  const [dailyHoroscopes, setDailyHoroscopes] = useState({});
 
   useEffect(() => {
-    const now = new Date();
-    setCurrentTime(
-      now.toLocaleDateString('es-CO', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
+    const updateDate = () => {
+      setCurrentTime(
+        new Intl.DateTimeFormat('es-CO', {
+          timeZone: 'America/Bogota',
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }).format(new Date())
+      );
+    };
+    updateDate();
+    const timer = setInterval(updateDate, 60 * 1000);
+
+    let active = true;
+    fetch('/api/horoscopes')
+      .then((response) => {
+        if (!response.ok) throw new Error('Daily horoscopes are not configured yet');
+        return response.json();
       })
-    );
+      .then((data) => {
+        if (active && data.horoscopes && data.count === 12) {
+          setDailyHoroscopes(data.horoscopes);
+        }
+      })
+      .catch((error) => console.warn('Using bundled horoscope fallback:', error.message));
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
   }, []);
 
   const currentHoroscope = useMemo(() => {
     if (!selectedSign) return null;
-    return horoscopeDatabase[selectedSign.name] || horoscopeDatabase.Aries;
-  }, [selectedSign]);
+    return dailyHoroscopes[selectedSign.name] || horoscopeDatabase[selectedSign.name] || horoscopeDatabase.Aries;
+  }, [selectedSign, dailyHoroscopes]);
 
   if (!selectedSign) {
     return (
