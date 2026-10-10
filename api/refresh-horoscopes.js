@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   const token = process.env.HOROSCOPE_JOB_TOKEN;
-  if (!token || req.headers['x-horoscope-token'] !== token) {
+  if (!token || req.headers.authorization !== `Bearer ${token}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
