@@ -5,10 +5,16 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  const token = process.env.HOROSCOPE_JOB_TOKEN;
-  if (!token || req.headers.authorization !== `Bearer ${token}`) {
+
+  // Vercel Cron sends CRON_SECRET as a Bearer token. Keep supporting
+  // the dedicated job token for manual or external refresh requests.
+  const authorization = req.headers.authorization;
+  const validTokens = [process.env.HOROSCOPE_JOB_TOKEN, process.env.CRON_SECRET]
+    .filter(Boolean);
+  if (!validTokens.some((token) => authorization === `Bearer ${token}`)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
   try {
     const result = await refreshDailyHoroscopes();
     return res.status(200).json({ ok: true, ...result });
